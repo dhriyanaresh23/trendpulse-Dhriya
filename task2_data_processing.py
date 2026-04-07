@@ -23,38 +23,62 @@ with open(file_path, "r") as f:
 
 print("Total records:", len(data))
 
+# CLEANING DATA
 
-# cleaning data
-cleaned = []
+# 1) Remove duplicates
+seen = set()
+unique_data = []
 
 for item in data:
-    
-    # skip if title missing
-    if item.get("title") == "" or item.get("title") is None:
-        continue
+    pid = item.get("post_id")
+    if pid not in seen:
+        seen.add(pid)
+        unique_data.append(item)
 
-    # skip low score
-    if item.get("score", 0) < 10:
-        continue
+print("After removing duplicates:", len(unique_data))
 
-    # remove extra spaces
+
+# 2) Remove missing values
+no_null = []
+
+for item in unique_data:
+    if not item.get("post_id") or not item.get("title") or item.get("score") is None:
+        continue
+    no_null.append(item)
+
+print("After removing nulls:", len(no_null))
+
+
+# 3) Remove low score (<5)
+filtered = []
+
+for item in no_null:
+    if item.get("score", 0) >= 5:
+        filtered.append(item)
+
+print("After removing low scores:", len(filtered))
+
+
+# 4) Clean titles + fix types
+cleaned = []
+
+for item in filtered:
     item["title"] = item["title"].strip()
-
+    
+    # fix types
+    item["score"] = int(item.get("score", 0))
+    item["num_comments"] = int(item.get("num_comments", 0))
+    
     cleaned.append(item)
 
-print("After cleaning:", len(cleaned))
-
-
-# create output folder
+# SAVE CSV
 if not os.path.exists("output"):
     os.makedirs("output")
 
 csv_file = "output/cleaned_data.csv"
 
-# fields
 cols = ["post_id", "title", "subreddit", "score", "num_comments", "author", "collected_at"]
 
-# write csv
 with open(csv_file, "w", newline="", encoding="utf-8") as f:
     writer = csv.DictWriter(f, fieldnames=cols)
     writer.writeheader()
@@ -62,4 +86,16 @@ with open(csv_file, "w", newline="", encoding="utf-8") as f:
     for row in cleaned:
         writer.writerow(row)
 
-print("CSV file created:", csv_file)
+print("\nSaved", len(cleaned), "rows to", csv_file)
+
+# CATEGORY SUMMARY
+print("\nStories per category:")
+
+count = {}
+
+for item in cleaned:
+    cat = item["subreddit"]
+    count[cat] = count.get(cat, 0) + 1
+
+for category, total in count.items():
+    print(f"{category}: {total}")
