@@ -69,8 +69,11 @@ def main():
     story_ids = get_story_ids()
 
     data = []
-    seen_ids = set()  # avoid duplicates
+    seen_ids = set()
+
+    # include "other"
     count = {cat: 0 for cat in categories}
+    count["other"] = 0
 
     # 1) Category-wise collection
     for category in categories:
@@ -91,10 +94,9 @@ def main():
             if count[category] >= 25:
                 break
 
-        # sleep per category (as required)
         time.sleep(2)
-
-    # 2) Fallback fill (to reach 125)
+        
+# 2) Fill remaining stories while keeping max 25 per category
     if len(data) < 125:
         for sid in story_ids:
             story = get_story(sid)
@@ -103,13 +105,20 @@ def main():
                 continue
 
             item = extract(story)
+            cat = item["subreddit"]
 
-            if item["post_id"] not in seen_ids:
+            if item["post_id"] not in seen_ids and count[cat] < 25:
                 data.append(item)
                 seen_ids.add(item["post_id"])
+                count[cat] += 1
 
             if len(data) >= 125:
                 break
+
+    # PRINT CATEGORY COUNTS
+    print("\nCategory-wise count:")
+    for cat, val in count.items():
+        print(f"{cat}: {val}")
 
     # Save JSON
     if not os.path.exists("data"):
@@ -120,7 +129,7 @@ def main():
     with open(filename, "w") as f:
         json.dump(data, f, indent=4)
 
-    print(f"Collected {len(data)} stories. Saved to {filename}")
+    print(f"\nCollected {len(data)} stories. Saved to {filename}")
 
 
 # RUN PROGRAM
