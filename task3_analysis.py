@@ -1,44 +1,75 @@
 import pandas as pd
-import matplotlib.pyplot as plt
+import numpy as np
+import os
 
-# load data
+# -------------------------------
+# LOAD DATA
+# -------------------------------
 file = "output/cleaned_data.csv"
 df = pd.read_csv(file)
 
-print("Total records:", len(df))
+print("Loaded data:", df.shape)
 
-# 1. Posts per category
-category_count = df["subreddit"].value_counts()
-print("\nPosts per category:\n", category_count)
+print("\nFirst 5 rows:")
+print(df.head())
 
-# plot
-category_count.plot(kind="bar")
-plt.title("Posts per Category")
-plt.xlabel("Category")
-plt.ylabel("Count")
-plt.show()
 
-# 2. Top 5 posts by score
-top_posts = df.sort_values(by="score", ascending=False).head(5)
+# -------------------------------
+# BASIC INFO
+# -------------------------------
+print("\nAverage score:", int(df["score"].mean()))
+print("Average comments:", int(df["num_comments"].mean()))
 
-print("\nTop 5 posts:\n")
-print(top_posts[["title", "score"]])
 
-# 3. Average score per category
-avg_score = df.groupby("subreddit")["score"].mean()
+# -------------------------------
+# NUMPY ANALYSIS
+# -------------------------------
+scores = df["score"].values
 
-print("\nAverage score per category:\n", avg_score)
+print("\n--- NumPy Stats ---")
+print("Mean score:", int(np.mean(scores)))
+print("Median score:", int(np.median(scores)))
+print("Std deviation:", int(np.std(scores)))
+print("Max score:", int(np.max(scores)))
+print("Min score:", int(np.min(scores)))
 
-# plot
-avg_score.plot(kind="bar")
-plt.title("Average Score per Category")
-plt.xlabel("Category")
-plt.ylabel("Avg Score")
-plt.show()
 
-# 4. Comments vs Score
-plt.scatter(df["score"], df["num_comments"])
-plt.title("Score vs Comments")
-plt.xlabel("Score")
-plt.ylabel("Comments")
-plt.show()
+# -------------------------------
+# CATEGORY ANALYSIS
+# -------------------------------
+category_counts = df["subreddit"].value_counts()
+top_category = category_counts.idxmax()
+
+print(f"\nMost stories in: {top_category} ({category_counts[top_category]} stories)")
+
+
+# -------------------------------
+# MOST COMMENTED STORY
+# -------------------------------
+max_comments_row = df.loc[df["num_comments"].idxmax()]
+
+print(f'\nMost commented story: "{max_comments_row["title"]}" - {max_comments_row["num_comments"]} comments')
+
+
+# -------------------------------
+# ADD NEW COLUMNS
+# -------------------------------
+
+# engagement
+df["engagement"] = df["num_comments"] / (df["score"] + 1)
+
+# is_popular
+avg_score = df["score"].mean()
+df["is_popular"] = df["score"] > avg_score
+
+
+# -------------------------------
+# SAVE FILE
+# -------------------------------
+if not os.path.exists("data"):
+    os.makedirs("data")
+
+output_file = "data/trends_analysed.csv"
+df.to_csv(output_file, index=False)
+
+print(f"\nSaved to {output_file}")
